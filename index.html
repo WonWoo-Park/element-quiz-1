@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>주기율표 퀴즈</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f7f9;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 100%;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+    td, th {
+      border: 1px solid #ccc;
+      text-align: center;
+      padding: 6px;
+      height: 40px;
+      position: relative;
+    }
+    th {
+      background-color: #e0e0e0;
+    }
+    .highlight {
+      background-color: #ffa07a !important;
+    }
+    .empty {
+      background-color: #f4f4f4;
+      border: none;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 6px 0;
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .question, .summary {
+      margin-top: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    .progress {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>주기율표 퀴즈</h2>
+    <div id="tableArea"></div>
+    <div id="quizArea"></div>
+    <div id="summaryArea" class="hidden"></div>
+  </div>
+
+  <script>
+    const elements = [
+      {symbol: 'H', name: '수소', number: 1, metal: '비금속', period: 1, group: 1},
+      {symbol: 'He', name: '헬륨', number: 2, metal: '비금속', period: 1, group: 18},
+      {symbol: 'Li', name: '리튬', number: 3, metal: '금속', period: 2, group: 1},
+      {symbol: 'Be', name: '베릴륨', number: 4, metal: '금속', period: 2, group: 2},
+      {symbol: 'B', name: '붕소', number: 5, metal: '준금속', period: 2, group: 13},
+      {symbol: 'C', name: '탄소', number: 6, metal: '비금속', period: 2, group: 14},
+      {symbol: 'N', name: '질소', number: 7, metal: '비금속', period: 2, group: 15},
+      {symbol: 'O', name: '산소', number: 8, metal: '비금속', period: 2, group: 16},
+      {symbol: 'F', name: '플루오린', number: 9, metal: '비금속', period: 2, group: 17},
+      {symbol: 'Ne', name: '네온', number: 10, metal: '비금속', period: 2, group: 18},
+      {symbol: 'Na', name: '나트륨', number: 11, metal: '금속', period: 3, group: 1},
+      {symbol: 'Mg', name: '마그네슘', number: 12, metal: '금속', period: 3, group: 2},
+      {symbol: 'Al', name: '알루미늄', number: 13, metal: '금속', period: 3, group: 13},
+      {symbol: 'Si', name: '규소', number: 14, metal: '준금속', period: 3, group: 14},
+      {symbol: 'P', name: '인', number: 15, metal: '비금속', period: 3, group: 15},
+      {symbol: 'S', name: '황', number: 16, metal: '비금속', period: 3, group: 16},
+      {symbol: 'Cl', name: '염소', number: 17, metal: '비금속', period: 3, group: 17},
+      {symbol: 'Ar', name: '아르곤', number: 18, metal: '비금속', period: 3, group: 18},
+      {symbol: 'K', name: '칼륨', number: 19, metal: '금속', period: 4, group: 1},
+      {symbol: 'Ca', name: '칼슘', number: 20, metal: '금속', period: 4, group: 2}
+    ];
+
+    let quizList = [];
+    let quizIndex = 0;
+    let startTime = Date.now();
+    let results = [];
+    let isWrongBefore = false;
+    let questionStartTime = 0;
+
+    function generateTable(highlightedElement) {
+      const tableArea = document.getElementById('tableArea');
+      if (!highlightedElement) {
+        tableArea.innerHTML = '';
+        return;
+      }
+      let html = '<table><thead><tr><th>주기\\족</th>';
+      for (let g = 1; g <= 18; g++) {
+        if ([1, 2, 13, 14, 15, 16, 17, 18].includes(g)) {
+          html += `<th>${g}</th>`;
+        }
+      }
+      html += '</tr></thead><tbody>';
+      for (let period = 1; period <= 4; period++) {
+        html += `<tr><th>${period}</th>`;
+        for (let group = 1; group <= 18; group++) {
+          if ([1, 2, 13, 14, 15, 16, 17, 18].includes(group)) {
+            const el = elements.find(e => e.period === period && e.group === group);
+            if (el) {
+              const isTarget = highlightedElement && el.number === highlightedElement.number;
+              html += `<td class="${isTarget ? 'highlight' : ''}">${isTarget ? '' : ''}</td>`;
+            } else {
+              html += '<td class="empty"></td>';
+            }
+          }
+        }
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      tableArea.innerHTML = html;
+    }
+
+    function startQuiz() {
+      quizList = elements.sort(() => Math.random() - 0.5).slice(0, 3);
+      quizIndex = 0;
+      startTime = Date.now();
+      results = [];
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const el = quizList[quizIndex];
+      isWrongBefore = false;
+      questionStartTime = Date.now();
+
+      generateTable(el);
+      const quizArea = document.getElementById('quizArea');
+      quizArea.classList.remove('hidden');
+      quizArea.innerHTML = `
+        <div class="question">
+          <p class="progress">문제 ${quizIndex + 1} / 3</p>
+          <p>1. 해당 원소의 원소 기호는?</p>
+          <input id="symbol">
+          <p>2. 해당 원소의 원소명은?</p>
+          <input id="name">
+          <p>3. 해당 원소의 원자 번호는?</p>
+          <input id="number" type="number">
+          <p>4. 해당 원소는 금속/비금속/준금속 중 무엇인가?</p>
+          <select id="metal">
+            <option value="">선택</option>
+            <option value="금속">금속</option>
+            <option value="비금속">비금속</option>
+            <option value="준금속">준금속</option>
+          </select>
+          <button onclick="submitAnswer()">제출</button>
+          <div id="feedback"></div>
+        </div>
+      `;
+    }
+
+    function submitAnswer() {
+      const el = quizList[quizIndex];
+      const symbol = document.getElementById('symbol').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const number = parseInt(document.getElementById('number').value);
+      const metal = document.getElementById('metal').value;
+      const feedback = document.getElementById('feedback');
+
+      let explanation = [];
+      let correct = true;
+
+      if (symbol !== el.symbol) {
+        explanation.push(`기호 오답: 입력(${symbol}) → 정답(${el.symbol})`);
+        correct = false;
+      }
+      if (name !== el.name) {
+        explanation.push(`이름 오답: 입력(${name}) → 정답(${el.name})`);
+        correct = false;
+      }
+      if (number !== el.number) {
+        explanation.push(`원자번호 오답: 입력(${number}) → 정답(${el.number})`);
+        correct = false;
+      }
+      if (metal !== el.metal) {
+        explanation.push(`금속성 오답: 입력(${metal}) → 정답(${el.metal})`);
+        correct = false;
+      }
+
+      if (!correct) {
+        isWrongBefore = true;
+        feedback.innerHTML = `❌ 오답입니다:<br>${explanation.join('<br>')}<br>정답을 수정해야 다음 문제로 넘어갈 수 있습니다.`;
+        return;
+      }
+
+      const timeTaken = ((Date.now() - questionStartTime) / 1000).toFixed(1);
+
+      results.push({
+        ...el,
+        initiallyCorrect: !isWrongBefore,
+        timeTaken: timeTaken
+      });
+
+      feedback.innerHTML = `✅ 정답입니다! 훌륭해요!`;
+
+      setTimeout(() => {
+        quizIndex++;
+        if (quizIndex < quizList.length) {
+          showQuestion();
+        } else {
+          document.getElementById('tableArea').innerHTML = '';
+          showSummary();
+        }
+      }, 1000);
+    }
+
+    function showSummary() {
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      const area = document.getElementById('summaryArea');
+      document.getElementById('quizArea').classList.add('hidden');
+      area.classList.remove('hidden');
+
+      let html = `<h3>퀴즈 완료!</h3><p>총 소요 시간: ${totalTime}초</p><h4>오답노트</h4>`;
+      html += `
+        <table>
+          <thead>
+            <tr>
+              <th>원소명</th>
+              <th>기호</th>
+              <th>원자번호</th>
+              <th>금속성</th>
+              <th>오답 여부</th>
+              <th>소요 시간 (초)</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      results.forEach(r => {
+        html += `
+          <tr>
+            <td>${r.name}</td>
+            <td>${r.symbol}</td>
+            <td>${r.number}</td>
+            <td>${r.metal}</td>
+            <td>${r.initiallyCorrect ? '⭕ 정답' : '❌ 오답 후 정답'}</td>
+            <td>${r.timeTaken}</td>
+          </tr>`;
+      });
+      html += '</tbody></table>';
+      area.innerHTML = html;
+    }
+
+    startQuiz();
+  </script>
+</body>
+</html>
